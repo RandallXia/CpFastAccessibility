@@ -2,20 +2,17 @@ package cn.coderpig.cp_fast_accessibility
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
+import android.accessibilityservice.GestureDescription.StrokeDescription
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Path
-import android.graphics.Point
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.RequiresApi
-import org.w3c.dom.Node
-import java.lang.Exception
 import kotlin.random.Random
 
 /**
@@ -90,9 +87,13 @@ fun sleep(millis: Long) = Thread.sleep(millis)
  * 手势模拟相关
  * */
 // 快速生成GestureDescription的方法
-fun fastGestureDescription(operate: (Path) -> Unit, startTime: Long = 0L, duration: Long = 50L): GestureDescription =
+fun fastGestureDescription(
+    operate: (Path) -> Unit,
+    startTime: Long = 0L,
+    duration: Long = 50L
+): GestureDescription =
     GestureDescription.Builder().apply {
-        addStroke(GestureDescription.StrokeDescription(Path().apply {
+        addStroke(StrokeDescription(Path().apply {
             operate.invoke(this)
         }, startTime, duration))
     }.build()
@@ -131,13 +132,31 @@ fun click(
         val tempX = x + Random.nextInt(0 - randomPosition, randomPosition + 1)
         val tempY = y + Random.nextInt(0 - randomPosition, randomPosition + 1)
         val tempDuration = duration + Random.nextLong(0 - randomTime, randomTime + 1)
+
+
+        // 创建一个 GestureDescription.Builder 对象
+        val gestureBuilder = GestureDescription.Builder()
+
+
+        // 创建一个 Path 对象，描述手势的路径
+        val clickPath = Path()
+        clickPath.moveTo(tempX.toFloat(), tempY.toFloat())
+
+        // 将点击路径添加到手势构建器中
+        val clickStroke = StrokeDescription(clickPath, 0, tempDuration)
+        gestureBuilder.addStroke(clickStroke)
+
+        // 创建 GestureDescription 对象
+        val gestureDescription = gestureBuilder.build()
         FastAccessibilityService.require?.dispatchGesture(
-            fastGestureDescription({
-                it.moveTo(
-                    if (tempX < 0) x.toFloat() else tempX.toFloat(),
-                    if (tempY < 0) y.toFloat() else tempY.toFloat()
-                )
-            }, delayTime, tempDuration), fastGestureCallback(), null
+            gestureDescription,
+//            fastGestureDescription({
+//                it.moveTo(
+//                    if (tempX < 0) x.toFloat() else tempX.toFloat(),
+//                    if (tempY < 0) y.toFloat() else tempY.toFloat()
+//                )
+//            }, delayTime, tempDuration),
+            fastGestureCallback(), null
         )
     }
 }
@@ -226,7 +245,7 @@ fun NodeWrapper?.click(gestureClick: Boolean = true, duration: Long = 200L) {
     if (gestureClick) {
         bounds?.let {
             val centerX = (it.left + it.right) / 2
-            val centerY = (it.left + it.right) / 2
+            val centerY = (it.top + it.bottom) / 2
             if (centerX >= 0 && centerY >= 0) click(centerX, centerY, 0, duration)
         }
     } else {
@@ -478,9 +497,13 @@ fun AccessibilityNodeInfo?.printAllNode(level: Int = 0) {
         val bounds = Rect()
         this@printAllNode.getBoundsInScreen(bounds)
         append("${this@printAllNode.className}")
-        this@printAllNode.viewIdResourceName.expressionResult({ it.isNotBlank() }, { append(" → $it") })
+        this@printAllNode.viewIdResourceName.expressionResult(
+            { it.isNotBlank() },
+            { append(" → $it") })
         this@printAllNode.text.expressionResult({ it.isNotBlank() }, { append(" → $it") })
-        this@printAllNode.contentDescription.expressionResult({ it.isNotBlank() }, { append(" → $it") })
+        this@printAllNode.contentDescription.expressionResult(
+            { it.isNotBlank() },
+            { append(" → $it") })
         append(" → $bounds")
         this@printAllNode.isClickable.expressionResult({ it }, { append(" → 可点击") })
         this@printAllNode.isScrollable.expressionResult({ it }, { append(" → 可滚动") })

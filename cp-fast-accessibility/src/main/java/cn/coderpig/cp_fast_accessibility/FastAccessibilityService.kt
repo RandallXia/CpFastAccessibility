@@ -1,36 +1,13 @@
 package cn.coderpig.cp_fast_accessibility
 
 import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.AccessibilityServiceInfo
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
-import android.graphics.Color
-import android.graphics.PixelFormat
 import android.graphics.Rect
-import android.os.Build
-import android.security.KeyChainAliasCallback
-import android.view.LayoutInflater
-import android.view.MotionEvent
-import android.view.View
-import android.view.WindowManager
-import android.view.WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
-import android.widget.LinearLayout
-import android.widget.RelativeLayout
-import android.widget.TextView
-import androidx.annotation.RequiresApi
-import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat.getSystemService
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.random.Random
 
 
 /**
@@ -43,11 +20,15 @@ abstract class FastAccessibilityService : AccessibilityService() {
         var instance: FastAccessibilityService? = null  // 无障碍服务对象实例，暴露给外部调用
         val isServiceEnable: Boolean get() = instance != null   // 无障碍服务是否可用
         private var _appContext: Context? = null    // 幕后属性，对外表现为只读，对内表现为可读写
-        val appContext get() = _appContext ?: throw NullPointerException("需要在Application的onCreate()中调用init()")
+        val appContext
+            get() = _appContext
+                ?: throw NullPointerException("需要在Application的onCreate()中调用init()")
         lateinit var specificServiceClass: Class<*> // 具体无障碍服务实现类的类类型
-        private var mListenEventTypeList = arrayListOf(AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) // 监听的event类型列表
+        private var mListenEventTypeList =
+            arrayListOf(AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) // 监听的event类型列表
         private var mListenPackageList = arrayListOf<String>()  // 要监听的event的包名列表，不传默认监听所有应用的包名
         var enableListenApp: Boolean = true    // 是否监听APP的标记，默认监听
+
         /**
          * 库初始化方法，必须在Application的OnCreate()中调用
          *
@@ -101,12 +82,15 @@ abstract class FastAccessibilityService : AccessibilityService() {
                 val className = event.className.blankOrThis()
                 val packageName = event.packageName.blankOrThis()
                 val eventType = event.eventType
+//                Log.d("tag", event.packageName.toString())
                 // 监听列表为空，或者要监听的package列表里有此package的event才分发
                 if (mListenPackageList.isEmpty() || (mListenPackageList.isNotEmpty() && packageName in mListenPackageList)) {
                     if (className.isNotBlank() && packageName.isNotBlank())
-                        analyzeSource(EventWrapper(packageName, className, eventType),
+                        analyzeSource(
+                            EventWrapper(packageName, className, eventType),
                             noAnalyzeCallback = ::noAnalyzeCallBack,
-                            analyzeCallback = ::analyzeCallBack)
+                            analyzeCallback = ::analyzeCallBack
+                        )
                 }
             }
         }
@@ -144,7 +128,11 @@ abstract class FastAccessibilityService : AccessibilityService() {
     /**
      * 递归遍历结点的方法
      * */
-    private fun analyzeNode(node: AccessibilityNodeInfo?, nodeIndex: Int, list: ArrayList<NodeWrapper>) {
+    private fun analyzeNode(
+        node: AccessibilityNodeInfo?,
+        nodeIndex: Int,
+        list: ArrayList<NodeWrapper>
+    ) {
         if (node == null) return
         val bounds = Rect()
         node.getBoundsInScreen(bounds)
@@ -168,12 +156,11 @@ abstract class FastAccessibilityService : AccessibilityService() {
     }
 
 
-
     // 监听Event的自定义回调，可按需重写
     open fun analyzeCallBack(wrapper: EventWrapper?, result: AnalyzeSourceResult) {}
 
     // 不解析结点的自定义回调，可按需重写
-    open fun noAnalyzeCallBack(wrapper: EventWrapper?, node: AccessibilityNodeInfo?) { }
+    open fun noAnalyzeCallBack(wrapper: EventWrapper?, node: AccessibilityNodeInfo?) {}
 
     override fun onInterrupt() {}
 
